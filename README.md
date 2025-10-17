@@ -65,8 +65,8 @@ The SID (Security Identifier) History attribute allows objects to retain their S
 ## Installation
 
 ```bash
-git clone https://github.com/yourusername/sidhistory-attack-tool.git
-cd sidhistory-attack-tool
+git clone https://github.com/felixbillieres/SIDHistory.git
+cd SIDHistory
 
 # Create and activate virtual environment (recommended)
 python3 -m venv venv
