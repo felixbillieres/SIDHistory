@@ -278,6 +278,10 @@ Organizations can detect and prevent SID History attacks by:
 - [The Hacker Recipes: SID History](https://www.thehacker.recipes/ad/persistence/sid-history)
 - [ADSecurity: SID History Injection](https://adsecurity.org/?p=1772)
 
+## Author
+
+**Félix Billières (Elliot Belt)**
+
 ## Contributing
 
 Contributions are welcome. Please submit pull requests or open issues for bugs and feature requests.
