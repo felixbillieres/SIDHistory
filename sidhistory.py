@@ -89,6 +89,7 @@ Examples:
 
     # Modification options
     parser.add_argument('--source-user', help='Source user whose SID to inject')
+    parser.add_argument('--source-domain', help='Source domain (for trusted domain SID injection)')
     parser.add_argument('--sid', help='Specific SID to add/remove')
     parser.add_argument('--remove', action='store_true', help='Remove SID instead of adding')
     parser.add_argument('--clear', action='store_true', help='Clear all SID History')
@@ -214,7 +215,11 @@ def handle_modify_action(attacker: SIDHistoryAttack, args) -> bool:
     else:
         # Add SID
         if args.source_user:
-            success = attacker.inject_sid_history(args.target_user, args.source_user)
+            success = attacker.inject_sid_history(
+                args.target_user, 
+                args.source_user,
+                source_domain=args.source_domain
+            )
         else:
             success = attacker.add_sid_to_history(args.target_user, args.sid)
 
